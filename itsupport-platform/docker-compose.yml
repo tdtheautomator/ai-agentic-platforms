@@ -1,0 +1,83 @@
+
+
+services:
+  # IT Support Platform Service
+  itsupport:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: itsupport-demo
+    ports:
+      - "8007:8007"
+    environment:
+      # LLM Configuration
+      OLLAMA_HOST: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen3:0.6b
+      # Optional: Uncomment to use OpenAI
+      # OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Optional: Uncomment to use Anthropic
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      
+      # Data Persistence
+      DATA_DIR: /data
+      REDIS_URL: redis://redis:6379
+      
+      # Service Configuration
+      SERVICE_NAME: itsupport-demo
+      SERVICE_PORT: 8007
+    
+    volumes:
+      # Persistent data volumes
+      - itsupport-sqlite:/data/sqlite
+      - itsupport-chroma:/data/chroma
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - itsupport-network
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8007/api/status')"]
+      interval: 25s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    
+    restart: unless-stopped
+
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: itsupport-redis
+    ports:
+      - "6379:6379"
+    
+    volumes:
+      - itsupport-redis:/data
+    
+    networks:
+      - itsupport-network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    restart: unless-stopped
+    
+    command: redis-server --appendonly yes
+
+volumes:
+  itsupport-sqlite:
+    driver: local
+  itsupport-chroma:
+    driver: local
+  itsupport-redis:
+    driver: local
+
+networks:
+  itsupport-network:
+    driver: bridge
