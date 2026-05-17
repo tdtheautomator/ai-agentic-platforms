@@ -1,0 +1,41 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Docker volumes (local dev)
+data/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Grafana local state (provisioned via config, not gitignored)
+# grafana_data/ — managed by Docker volume
+
+# ChromaDB local (managed by Docker volume)
+# chroma/
+
+# Logs
+*.log
+logs/
+
+# Zip artifacts
+*.zip
