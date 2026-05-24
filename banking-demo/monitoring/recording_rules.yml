@@ -1,0 +1,135 @@
+groups:
+  - name: banking_demo_recording
+    interval: 30s
+    rules:
+      # ── Application Metrics ───────────────────────────────────────────────
+      - record: banking:applications:rate5m
+        expr: rate(banking_applications_total[5m])
+
+      - record: banking:applications:rate1h
+        expr: rate(banking_applications_total[1h])
+
+      - record: banking:approved:rate5m
+        expr: rate(banking_applications_approved_total[5m])
+
+      - record: banking:declined:rate5m
+        expr: rate(banking_applications_declined_total[5m])
+
+      - record: banking:conditional:rate5m
+        expr: rate(banking_applications_conditional_total[5m])
+
+      # ── Decision Distribution ─────────────────────────────────────────────
+      - record: banking:decision:approved_ratio
+        expr: |
+          increase(banking_applications_approved_total[1h])
+          /
+          (increase(banking_applications_total[1h]) + 0.001)
+
+      - record: banking:decision:declined_ratio
+        expr: |
+          increase(banking_applications_declined_total[1h])
+          /
+          (increase(banking_applications_total[1h]) + 0.001)
+
+      - record: banking:decision:conditional_ratio
+        expr: |
+          increase(banking_applications_conditional_total[1h])
+          /
+          (increase(banking_applications_total[1h]) + 0.001)
+
+      # ── Agent Performance ─────────────────────────────────────────────────
+      - record: banking:agent:p50_latency
+        expr: histogram_quantile(0.50, rate(banking_agent_duration_seconds_bucket[5m]))
+
+      - record: banking:agent:p95_latency
+        expr: histogram_quantile(0.95, rate(banking_agent_duration_seconds_bucket[5m]))
+
+      - record: banking:agent:p99_latency
+        expr: histogram_quantile(0.99, rate(banking_agent_duration_seconds_bucket[5m]))
+
+      - record: banking:agent:error_rate
+        expr: |
+          sum(rate(banking_agent_errors_total[5m]))
+          /
+          (sum(rate(banking_agent_calls_total[5m])) + 0.001)
+
+      # ── Risk & Fraud ──────────────────────────────────────────────────────
+      - record: banking:fraud:detection_rate
+        expr: rate(banking_fraud_detections_total[5m])
+
+      - record: banking:risk:high_rate
+        expr: rate(banking_risk_alerts_total{risk_level="high"}[5m])
+
+      - record: banking:risk:medium_rate
+        expr: rate(banking_risk_alerts_total{risk_level="medium"}[5m])
+
+      - record: banking:risk:low_rate
+        expr: rate(banking_risk_alerts_total{risk_level="low"}[5m])
+
+      # ── LLM Performance ───────────────────────────────────────────────────
+      - record: banking:llm:request_rate
+        expr: rate(banking_llm_requests_total[5m])
+
+      - record: banking:llm:error_rate
+        expr: |
+          sum(rate(banking_llm_requests_total{status="error"}[5m]))
+          /
+          (sum(rate(banking_llm_requests_total[5m])) + 0.001)
+
+      - record: banking:llm:p95_latency
+        expr: histogram_quantile(0.95, rate(banking_llm_latency_seconds_bucket[5m]))
+
+      - record: banking:llm:p99_latency
+        expr: histogram_quantile(0.99, rate(banking_llm_latency_seconds_bucket[5m]))
+
+      # ── Pipeline Performance ──────────────────────────────────────────────
+      - record: banking:pipeline:run_rate
+        expr: rate(banking_pipeline_runs_total[5m])
+
+      - record: banking:pipeline:throughput_1h
+        expr: increase(banking_pipeline_runs_total[1h])
+
+      - record: banking:pipeline:avg_latency
+        expr: |
+          sum(rate(banking_agent_duration_seconds_sum[5m]))
+          /
+          (sum(rate(banking_agent_duration_seconds_count[5m])) + 0.001)
+
+      # ── Memory Efficiency ─────────────────────────────────────────────────
+      - record: banking:memory:growth_rate
+        expr: rate(banking_memory_items_total[5m])
+
+      - record: banking:memory:operation_rate
+        expr: rate(banking_memory_operations_total[5m])
+
+      # ── HTTP Performance ──────────────────────────────────────────────────
+      - record: banking:http:request_rate
+        expr: rate(http_requests_total{job="banking-demo"}[5m])
+
+      - record: banking:http:error_rate
+        expr: |
+          sum(rate(http_requests_total{job="banking-demo",status=~"5.."}[5m]))
+          /
+          (sum(rate(http_requests_total{job="banking-demo"}[5m])) + 0.001)
+
+      - record: banking:http:p95_latency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="banking-demo"}[5m]))
+
+      - record: banking:http:p99_latency
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="banking-demo"}[5m]))
+
+      # ── Tool Performance ──────────────────────────────────────────────
+      - record: banking:tool:execution_rate
+        expr: rate(banking_tool_logs_total[5m])
+
+      - record: banking:tool:success_rate
+        expr: |
+          sum(rate(banking_tool_logs_total{status="success"}[5m]))
+          /
+          (sum(rate(banking_tool_logs_total[5m])) + 0.001)
+
+      - record: banking:tool:error_rate
+        expr: |
+          sum(rate(banking_tool_logs_total{status="error"}[5m]))
+          /
+          (sum(rate(banking_tool_logs_total[5m])) + 0.001)

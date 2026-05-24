@@ -1,0 +1,93 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: ''
+
+# Templates for alert notifications
+templates: []
+
+# Root route with all parameters, which are inherited by the child routes if they are not overwritten.
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical'
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1h
+
+    # Warning alerts - batched notification
+    - match:
+        severity: warning
+      receiver: 'warning'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+    # Info alerts - daily digest
+    - match:
+        severity: info
+      receiver: 'info'
+      group_wait: 1m
+      group_interval: 30m
+      repeat_interval: 24h
+
+# Receivers define the notification channels
+receivers:
+  - name: 'default'
+    # Default receiver - no notifications configured
+
+  - name: 'critical'
+    # Critical alerts - sent immediately to Slack
+    slack_configs:
+      - channel: '#banking-demo-critical'
+        title: 'CRITICAL: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+
+  - name: 'warning'
+    # Warning alerts - batched to Slack
+    slack_configs:
+      - channel: '#banking-demo-alerts'
+        title: 'WARNING: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+
+  - name: 'info'
+    # Info alerts - daily digest to Slack
+    slack_configs:
+      - channel: '#banking-demo-info'
+        title: 'INFO: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+        color: 'good'
+
+# Inhibition rules allow to mute a set of alerts given that another alert is firing.
+inhibit_rules:
+  # Inhibit warning alerts if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service']
+
+  # Inhibit info alerts if warning or critical alert is firing
+  - source_match:
+      severity: 'warning'
+    target_match:
+      severity: 'info'
+    equal: ['alertname', 'service']
+
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'info'
+    equal: ['alertname', 'service']

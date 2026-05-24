@@ -1,0 +1,158 @@
+# ─────────────────────────────────────────────────────────────────
+#  Banking Demo — Standalone Compose
+#
+#  Minimum containers to run the banking demo independently:
+#    banking-demo   :8005   the full banking pipeline
+#    redis          :6379   working memory (TTL cache)
+#
+#  ChromaDB and SQLite are embedded — no extra containers needed.
+#  Ollama must be running on the Windows host at :11434.
+#
+#  Start:  docker compose -f docker-compose.banking.yml up --build
+#  Open:   http://localhost:8005
+# ─────────────────────────────────────────────────────────────────
+
+x-extra-hosts: &extra-hosts
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+
+  banking-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agent-banking-demo
+    ports:
+      - "8005:8005"
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:0.6b}
+      BANKING_OLLAMA_MODEL: ${BANKING_OLLAMA_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env
+    volumes:
+      - banking_chroma:/data/chroma
+      - banking_sqlite:/data/sqlite
+    depends_on:
+      redis:
+        condition: service_healthy
+    <<: *extra-hosts
+    networks: [banking-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request; urllib.request.urlopen('http://localhost:8005/api/status')"]
+      interval: 25s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: agent-redis-banking
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - banking_redis:/data
+    networks: [banking-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ─────────────────────────────────────────────────────────────────
+  # Observability Stack
+  # ─────────────────────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: agent-prometheus-banking
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - ./monitoring/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
+      - banking_prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks: [banking-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - banking-demo
+
+  alertmanager:
+    build:
+      context: ./monitoring
+      dockerfile: Dockerfile.alertmanager
+    container_name: agent-alertmanager-banking
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - banking_alertmanager:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    environment:
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    networks: [banking-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: agent-grafana-banking
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - banking_grafana:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [banking-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - prometheus
+
+networks:
+  banking-net:
+    driver: bridge
+
+volumes:
+  banking_chroma:
+  banking_sqlite:
+  banking_redis:
+  banking_prometheus:
+  banking_alertmanager:
+  banking_grafana:

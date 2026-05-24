@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banking AI Platform - Technical Architecture Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg-primary: #020617;
+      --bg-secondary: #0f172a;
+      --bg-tertiary: #1e293b;
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --border-color: #1e293b;
+      --accent-primary: #22d3ee;
+      --accent-secondary: #34d399;
+      --accent-tertiary: #a78bfa;
+      --code-bg: #0f172a;
+    }
+
+    html.light-mode {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #e2e8f0;
+      --text-primary: #0a0e27;
+      --text-secondary: #475569;
+      --border-color: #cbd5e1;
+      --accent-primary: #0284c7;
+      --accent-secondary: #059669;
+      --accent-tertiary: #7c3aed;
+      --code-bg: #f1f5f9;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      transition: all 0.3s ease;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .header-content h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent-primary);
+    }
+
+    .header-content p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    .theme-toggle {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .theme-btn {
+      padding: 0.75rem 1.5rem;
+      border: 2px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      cursor: pointer;
+      border-radius: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .theme-btn:hover {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      border-color: var(--accent-primary);
+    }
+
+    .theme-btn.active {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+    }
+
+    .section {
+      margin-bottom: 3rem;
+      padding: 2rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+    }
+
+    .section h2 {
+      font-size: 1.8rem;
+      color: var(--accent-primary);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .section h3 {
+      font-size: 1.3rem;
+      color: var(--accent-secondary);
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .subsection {
+      margin-left: 1.5rem;
+      padding: 1rem;
+      background: var(--bg-tertiary);
+      border-left: 3px solid var(--accent-tertiary);
+      margin-bottom: 1rem;
+      border-radius: 0.25rem;
+    }
+
+    .concept-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+    }
+
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 1rem 0;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin: 1rem 0;
+    }
+
+    .card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+    }
+
+    .card h4 {
+      color: var(--accent-primary);
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    .card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    ul, ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+    }
+
+    .highlight {
+      background: rgba(34, 211, 238, 0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      color: var(--accent-primary);
+    }
+
+    .warning {
+      background: rgba(251, 146, 60, 0.1);
+      border-left: 4px solid #fb923c;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 0.25rem;
+    }
+
+    .success {
+      background: rgba(52, 211, 153, 0.1);
+      border-left: 4px solid #34d399;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 0.25rem;
+    }
+
+    .toc {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .toc h3 {
+      color: var(--accent-primary);
+      margin-bottom: 1rem;
+    }
+
+    .toc ul {
+      list-style: none;
+      margin-left: 0;
+    }
+
+    .toc li {
+      margin-bottom: 0.5rem;
+    }
+
+    .toc a {
+      color: var(--accent-primary);
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .toc a:hover {
+      color: var(--accent-secondary);
+      text-decoration: underline;
+    }
+
+    .footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 2px solid var(--border-color);
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 1024px) {
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      .theme-toggle { display: none; }
+      body { background: white; color: black; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-content">
+        <h1>Banking AI Platform</h1>
+        <p>Technical Architecture & Concepts Guide for Enterprise Architects & Software Engineers</p>
+      </div>
+      <div class="theme-toggle">
+        <button class="theme-btn active" onclick="setTheme('dark')">🌙 Dark</button>
+        <button class="theme-btn" onclick="setTheme('light')">☀️ Light</button>
+      </div>
+    </div>
+
+    <div class="toc">
+      <h3>📋 Table of Contents</h3>
+      <ul>
+        <li><a href="#overview">1. System Overview</a></li>
+        <li><a href="#system-design">2. System Design</a></li>
+        <li><a href="#sdk">3. SDK Layer - Tool Registration & Dispatch</a></li>
+        <li><a href="#harness">4. Harness - Multi-Session Orchestration</a></li>
+        <li><a href="#a2a">5. A2A Protocol - Agent Communication</a></li>
+        <li><a href="#memory">6. Memory System - 4-Tier Architecture</a></li>
+        <li><a href="#llm">7. LLM Backend - Abstraction & Fallback</a></li>
+        <li><a href="#monitoring">8. Monitoring & Observability</a></li>
+        <li><a href="#enhancements">9. Enhancement Opportunities</a></li>
+      </ul>
+    </div>
+
+    <!-- SECTION 1: OVERVIEW -->
+    <div class="section" id="overview">
+      <h2>1. System Overview</h2>
+      
+      <p>The Banking AI Platform is a production-grade, multi-agent loan processing system that demonstrates enterprise-scale AI orchestration. It processes retail banking loan applications through 5 sequential sessions, coordinating 4 specialist AI agents, leveraging 6 specialized tools, and maintaining 4 distinct memory stores.</p>
+
+      <h3>Core Architecture Principles</h3>
+      <div class="grid-3">
+        <div class="card">
+          <h4>🔧 SDK Pattern</h4>
+          <p>Tool registration via decorators (@tool), structured dispatch, and type-safe execution with comprehensive error handling.</p>
+        </div>
+        <div class="card">
+          <h4>🔄 Orchestration</h4>
+          <p>Multi-session harness manages workflow state, progress tracking, context compaction, and inter-agent communication.</p>
+        </div>
+        <div class="card">
+          <h4>🧠 Memory Management</h4>
+          <p>4-tier memory system balances speed (Redis), persistence (SQLite), semantics (ChromaDB), and context (Python list).</p>
+        </div>
+      </div>
+
+      <h3>Pipeline Flow</h3>
+      <div class="concept-box">
+        <strong>Session 1 (Initialization):</strong> Harness setup, memory seeding, context initialization<br>
+        <strong>Session 2 (Intake):</strong> Customer profile, KYC verification, affordability pre-check<br>
+        <strong>Session 3 (Risk):</strong> Credit score analysis, DTI evaluation, regulatory rule queries<br>
+        <strong>Session 4 (Fraud):</strong> Transaction scanning, AML checks, behavioral analysis<br>
+        <strong>Session 5 (Decision):</strong> Final credit decision with comprehensive rationale
+      </div>
+    </div>
+
+    <!-- SECTION 2: SYSTEM DESIGN -->
+    <div class="section" id="system-design">
+      <h2>2. System Design</h2>
+
+      <h3>High-Level Architecture</h3>
+      <div class="concept-box">
+        <strong>Client Layer:</strong> FastAPI REST API (Port 8005) with SSE streaming<br>
+        <strong>Orchestration Layer:</strong> Harness manages 5-session workflow with state persistence<br>
+        <strong>Agent Layer:</strong> 4 specialist agents communicate via A2A protocol (JSON-RPC 2.0)<br>
+        <strong>Tool Layer:</strong> 6 specialized tools for customer, credit, fraud, compliance operations<br>
+        <strong>Memory Layer:</strong> 4-tier system (in-context, episodic, semantic, working)<br>
+        <strong>LLM Layer:</strong> Multi-backend abstraction (OpenAI, Anthropic, Ollama, Mock)<br>
+        <strong>Observability Layer:</strong> Prometheus metrics, Grafana dashboards, Slack notifications
+      </div>
+
+      <h3>Detailed Design Diagram</h3>
+      <div class="diagram-container">
+        <svg viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <style>
+              .design-box { fill: var(--bg-tertiary); stroke: var(--accent-primary); stroke-width: 2; }
+              .design-text { font-family: 'JetBrains Mono', monospace; font-size: 13px; fill: var(--text-primary); }
+              .design-label { font-weight: bold; font-size: 11px; fill: var(--accent-primary); }
+              .design-arrow { stroke: var(--accent-secondary); stroke-width: 2; fill: none; marker-end: url(#arrowhead2); }
+              .design-dashed { stroke: var(--accent-tertiary); stroke-width: 1.5; stroke-dasharray: 5,5; fill: none; marker-end: url(#arrowhead3); }
+              .design-section { fill: var(--bg-secondary); stroke: var(--border-color); stroke-width: 1; }
+              .design-section-label { font-size: 12px; fill: var(--text-secondary); font-weight: bold; }
+              .design-data { fill: var(--accent-secondary); opacity: 0.2; }
+            </style>
+            <marker id="arrowhead2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+              <polygon points="0 0, 10 3, 0 6" fill="var(--accent-secondary)" />
+            </marker>
+            <marker id="arrowhead3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+              <polygon points="0 0, 10 3, 0 6" fill="var(--accent-tertiary)" />
+            </marker>
+          </defs>
+
+          <!-- Section backgrounds -->
+          <rect class="design-section" x="20" y="20" width="1360" height="100" rx="8"/>
+          <rect class="design-section" x="20" y="140" width="1360" height="150" rx="8"/>
+          <rect class="design-section" x="20" y="310" width="1360" height="150" rx="8"/>
+          <rect class="design-section" x="20" y="480" width="1360" height="180" rx="8"/>
+          <rect class="design-section" x="20" y="680" width="1360" height="200" rx="8"/>
+
+          <!-- Section labels -->
+          <text class="design-section-label" x="40" y="40">CLIENT & API LAYER</text>
+          <text class="design-section-label" x="40" y="160">ORCHESTRATION LAYER</text>
+          <text class="design-section-label" x="40" y="330">AGENT & TOOL EXECUTION LAYER</text>
+          <text class="design-section-label" x="40" y="500">MEMORY SYSTEM</text>
+          <text class="design-section-label" x="40" y="700">DATA PERSISTENCE & OBSERVABILITY</text>
+
+          <!-- CLIENT & API LAYER -->
+          <rect class="design-box" x="50" y="50" width="180" height="60" rx="4"/>
+          <text class="design-text" x="70" y="70">Web Client</text>
+          <text class="design-text" x="70" y="88">REST API</text>
+
+          <rect class="design-box" x="260" y="50" width="180" height="60" rx="4"/>
+          <text class="design-text" x="280" y="70">FastAPI Gateway</text>
+          <text class="design-text" x="280" y="88">Port 8005</text>
+
+          <rect class="design-box" x="470" y="50" width="180" height="60" rx="4"/>
+          <text class="design-text" x="490" y="70">Request Validation</text>
+          <text class="design-text" x="490" y="88">Pydantic</text>
+
+          <rect class="design-box" x="680" y="50" width="180" height="60" rx="4"/>
+          <text class="design-text" x="700" y="70">SSE Stream</text>
+          <text class="design-text" x="700" y="88">Real-time Events</text>
+
+          <rect class="design-box" x="890" y="50" width="180" height="60" rx="4"/>
+          <text class="design-text" x="910" y="70">Response Handler</text>
+          <text class="design-text" x="910" y="88">JSON Serialization</text>
+
+          <rect class="design-box" x="1100" y="50" width="260" height="60" rx="4"/>
+          <text class="design-text" x="1120" y="70">Error Management</text>
+          <text class="design-text" x="1120" y="88">Logging & Tracing</text>
+
+          <!-- ORCHESTRATION LAYER -->
+          <rect class="design-box" x="50" y="170" width="200" height="110" rx="4"/>
+          <text class="design-label" x="70" y="190">Harness Manager</text>
+          <text class="design-text" x="70" y="210">Session State</text>
+          <text class="design-text" x="70" y="228">Context Mgmt</text>
+          <text class="design-text" x="70" y="246">Progress Track</text>
+          <text class="design-text" x="70" y="264">Workflow Coord</text>
+
+          <rect class="design-box" x="280" y="170" width="200" height="110" rx="4"/>
+          <text class="design-label" x="300" y="190">Agent Discovery</text>
+          <text class="design-text" x="300" y="210">Agent Cards</text>
+          <text class="design-text" x="300" y="228">Capability Map</text>
+          <text class="design-text" x="300" y="246">Service Registry</text>
+          <text class="design-text" x="300" y="264">Health Check</text>
+
+          <rect class="design-box" x="510" y="170" width="200" height="110" rx="4"/>
+          <text class="design-label" x="530" y="190">Task Dispatch</text>
+          <text class="design-text" x="530" y="210">JSON-RPC 2.0</text>
+          <text class="design-text" x="530" y="228">Request Queue</text>
+          <text class="design-text" x="530" y="246">Response Mgmt</text>
+          <text class="design-text" x="530" y="264">Timeout Handling</text>
+
+          <rect class="design-box" x="740" y="170" width="200" height="110" rx="4"/>
+          <text class="design-label" x="760" y="190">Session Pipeline</text>
+          <text class="design-text" x="760" y="210">S1: Init</text>
+          <text class="design-text" x="760" y="228">S2: Intake</text>
+          <text class="design-text" x="760" y="246">S3: Risk</text>
+          <text class="design-text" x="760" y="264">S4-5: Fraud/Decision</text>
+
+          <rect class="design-box" x="970" y="170" width="200" height="110" rx="4"/>
+          <text class="design-label" x="990" y="190">Context Compaction</text>
+          <text class="design-text" x="990" y="210">Token Counting</text>
+          <text class="design-text" x="990" y="228">Summary Gen</text>
+          <text class="design-text" x="990" y="246">Relevance Filter</text>
+          <text class="design-text" x="990" y="264">Aging Strategy</text>
+
+          <rect class="design-box" x="1190" y="170" width="180" height="110" rx="4"/>
+          <text class="design-label" x="1210" y="190">State Persistence</text>
+          <text class="design-text" x="1210" y="210">Redis Backup</text>
+          <text class="design-text" x="1210" y="228">SQLite Snapshot</text>
+          <text class="design-text" x="1210" y="246">Checkpoint</text>
+
+          <!-- AGENT & TOOL LAYER -->
+          <rect class="design-box" x="50" y="340" width="150" height="110" rx="4"/>
+          <text class="design-label" x="70" y="360">Intake Agent</text>
+          <text class="design-text" x="70" y="378">KYC Verify</text>
+          <text class="design-text" x="70" y="396">Profile Load</text>
+          <text class="design-text" x="70" y="414">Affordability</text>
+          <text class="design-text" x="70" y="432">Pre-check</text>
+
+          <rect class="design-box" x="230" y="340" width="150" height="110" rx="4"/>
+          <text class="design-label" x="250" y="360">Risk Agent</text>
+          <text class="design-text" x="250" y="378">Credit Score</text>
+          <text class="design-text" x="250" y="396">DTI Analysis</text>
+          <text class="design-text" x="250" y="414">Rule Query</text>
+          <text class="design-text" x="250" y="432">Risk Score</text>
+
+          <rect class="design-box" x="410" y="340" width="150" height="110" rx="4"/>
+          <text class="design-label" x="430" y="360">Fraud Agent</text>
+          <text class="design-text" x="430" y="378">Txn Scan</text>
+          <text class="design-text" x="430" y="396">AML Check</text>
+          <text class="design-text" x="430" y="414">Behavior</text>
+          <text class="design-text" x="430" y="432">Analysis</text>
+
+          <rect class="design-box" x="590" y="340" width="150" height="110" rx="4"/>
+          <text class="design-label" x="610" y="360">Decision Agent</text>
+          <text class="design-text" x="610" y="378">Aggregate</text>
+          <text class="design-text" x="610" y="396">Scores</text>
+          <text class="design-text" x="610" y="414">Final Decision</text>
+          <text class="design-text" x="610" y="432">Rationale</text>
+
+          <rect class="design-box" x="770" y="340" width="130" height="110" rx="4"/>
+          <text class="design-label" x="790" y="360">Tools</text>
+          <text class="design-text" x="790" y="378">Customer</text>
+          <text class="design-text" x="790" y="396">Credit</text>
+          <text class="design-text" x="790" y="414">Fraud</text>
+          <text class="design-text" x="790" y="432">Compliance</text>
+
+          <rect class="design-box" x="920" y="340" width="130" height="110" rx="4"/>
+          <text class="design-label" x="940" y="360">LLM Backends</text>
+          <text class="design-text" x="940" y="378">OpenAI</text>
+          <text class="design-text" x="940" y="396">Anthropic</text>
+          <text class="design-text" x="940" y="414">Ollama</text>
+          <text class="design-text" x="940" y="432">Mock</text>
+
+          <rect class="design-box" x="1070" y="340" width="130" height="110" rx="4"/>
+          <text class="design-label" x="1090" y="360">LLM Adapter</text>
+          <text class="design-text" x="1090" y="378">Abstraction</text>
+          <text class="design-text" x="1090" y="396">Failover</text>
+          <text class="design-text" x="1090" y="414">Retry Logic</text>
+          <text class="design-text" x="1090" y="432">Fallback</text>
+
+          <rect class="design-box" x="1220" y="340" width="150" height="110" rx="4"/>
+          <text class="design-label" x="1240" y="360">Prompt Engine</text>
+          <text class="design-text" x="1240" y="378">Template Mgmt</text>
+          <text class="design-text" x="1240" y="396">Variable Inject</text>
+          <text class="design-text" x="1240" y="414">Optimization</text>
+
+          <!-- MEMORY SYSTEM -->
+          <rect class="design-box" x="50" y="510" width="160" height="140" rx="4"/>
+          <text class="design-label" x="70" y="530">In-Context</text>
+          <text class="design-text" x="70" y="550">Python List</text>
+          <text class="design-text" x="70" y="568">Current Session</text>
+          <text class="design-text" x="70" y="586">Messages</text>
+          <text class="design-text" x="70" y="604">Decisions</text>
+          <text class="design-text" x="70" y="622">Artifacts</text>
+
+          <rect class="design-box" x="230" y="510" width="160" height="140" rx="4"/>
+          <text class="design-label" x="250" y="530">Episodic</text>
+          <text class="design-text" x="250" y="550">Redis Cache</text>
+          <text class="design-text" x="250" y="568">Session Results</text>
+          <text class="design-text" x="250" y="586">Tool Outputs</text>
+          <text class="design-text" x="250" y="604">TTL: 24h</text>
+          <text class="design-text" x="250" y="622">Distributed</text>
+
+          <rect class="design-box" x="410" y="510" width="160" height="140" rx="4"/>
+          <text class="design-label" x="430" y="530">Semantic</text>
+          <text class="design-text" x="430" y="550">ChromaDB</text>
+          <text class="design-text" x="430" y="568">Embeddings</text>
+          <text class="design-text" x="430" y="586">Vector Search</text>
+          <text class="design-text" x="430" y="604">Similarity</text>
+          <text class="design-text" x="430" y="622">Queries</text>
+
+          <rect class="design-box" x="590" y="510" width="160" height="140" rx="4"/>
+          <text class="design-label" x="610" y="530">Persistent</text>
+          <text class="design-text" x="610" y="550">SQLite</text>
+          <text class="design-text" x="610" y="568">Audit Trail</text>
+          <text class="design-text" x="610" y="586">All Decisions</text>
+          <text class="design-text" x="610" y="604">Immutable</text>
+          <text class="design-text" x="610" y="622">Log</text>
+
+          <rect class="design-box" x="770" y="510" width="160" height="140" rx="4"/>
+          <text class="design-label" x="790" y="530">Memory Mgmt</text>
+          <text class="design-text" x="790" y="550">Eviction Policy</text>
+          <text class="design-text" x="790" y="568">LRU Strategy</text>
+          <text class="design-text" x="790" y="586">Compression</text>
+          <text class="design-text" x="790" y="604">Archival</text>
+          <text class="design-text" x="790" y="622">Cleanup</text>
+
+          <rect class="design-box" x="950" y="510" width="160" height="140" rx="4"/>
+          <text class="design-label" x="970" y="530">Context Window</text>
+          <text class="design-text" x="970" y="550">Token Budget</text>
+          <text class="design-text" x="970" y="568">Compression</text>
+          <text class="design-text" x="970" y="586">Summarization</text>
+          <text class="design-text" x="970" y="604">Sliding Window</text>
+          <text class="design-text" x="970" y="622">Management</text>
+
+          <rect class="design-box" x="1130" y="510" width="230" height="140" rx="4"/>
+          <text class="design-label" x="1150" y="530">Memory Fallback Strategy</text>
+          <text class="design-text" x="1150" y="550">Redis ↔ In-Process</text>
+          <text class="design-text" x="1150" y="568">ChromaDB ↔ Skip</text>
+          <text class="design-text" x="1150" y="586">SQLite ↔ Memory</text>
+          <text class="design-text" x="1150" y="604">Graceful Degradation</text>
+          <text class="design-text" x="1150" y="622">Data Consistency</text>
+
+          <!-- DATA PERSISTENCE & OBSERVABILITY -->
+          <rect class="design-box" x="50" y="710" width="140" height="160" rx="4"/>
+          <text class="design-label" x="70" y="730">PostgreSQL</text>
+          <text class="design-text" x="70" y="750">Applications</text>
+          <text class="design-text" x="70" y="768">Decisions</text>
+          <text class="design-text" x="70" y="786">Audit Trail</text>
+          <text class="design-text" x="70" y="804">Replication</text>
+          <text class="design-text" x="70" y="822">HA Setup</text>
+
+          <rect class="design-box" x="210" y="710" width="140" height="160" rx="4"/>
+          <text class="design-label" x="230" y="730">Prometheus</text>
+          <text class="design-text" x="230" y="750">Metrics</text>
+          <text class="design-text" x="230" y="768">Scrape</text>
+          <text class="design-text" x="230" y="786">Time Series</text>
+          <text class="design-text" x="230" y="804">Retention</text>
+          <text class="design-text" x="230" y="822">15d</text>
+
+          <rect class="design-box" x="370" y="710" width="140" height="160" rx="4"/>
+          <text class="design-label" x="390" y="730">Grafana</text>
+          <text class="design-text" x="390" y="750">Dashboards</text>
+          <text class="design-text" x="390" y="768">Visualization</text>
+          <text class="design-text" x="390" y="786">Alerts</text>
+          <text class="design-text" x="390" y="804">Annotations</text>
+          <text class="design-text" x="390" y="822">Custom</text>
+
+          <rect class="design-box" x="530" y="710" width="140" height="160" rx="4"/>
+          <text class="design-label" x="550" y="730">AlertManager</text>
+          <text class="design-text" x="550" y="750">Alert Rules</text>
+          <text class="design-text" x="550" y="768">Grouping</text>
+          <text class="design-text" x="550" y="786">Routing</text>
+          <text class="design-text" x="550" y="804">Silencing</text>
+          <text class="design-text" x="550" y="822">Dedup</text>
+
+          <rect class="design-box" x="690" y="710" width="140" height="160" rx="4"/>
+          <text class="design-label" x="710" y="730">Slack</text>
+          <text class="design-text" x="710" y="750">Notifications</text>
+          <text class="design-text" x="710" y="768">Webhooks</text>
+          <text class="design-text" x="710" y="786">Channels</text>
+          <text class="design-text" x="710" y="804">Escalation</text>
+          <text class="design-text" x="710" y="822">On-Call</text>
+
+          <rect class="design-box" x="850" y="710" width="140" height="160" rx="4"/>
+          <text class="design-label" x="870" y="730">Docker</text>
+          <text class="design-text" x="870" y="750">Containers</text>
+          <text class="design-text" x="870" y="768">Images</text>
+          <text class="design-text" x="870" y="786">Registry</text>
+          <text class="design-text" x="870" y="804">Versioning</text>
+          <text class="design-text" x="870" y="822">Tagging</text>
+
+          <rect class="design-box" x="1010" y="710" width="140" height="160" rx="4"/>
+          <text class="design-label" x="1030" y="730">Kubernetes</text>
+          <text class="design-text" x="1030" y="750">Orchestration</text>
+          <text class="design-text" x="1030" y="768">Deployments</text>
+          <text class="design-text" x="1030" y="786">Services</text>
+          <text class="design-text" x="1030" y="804">Scaling</text>
+          <text class="design-text" x="1030" y="822">Health</text>
+
+          <rect class="design-box" x="1170" y="710" width="200" height="160" rx="4"/>
+          <text class="design-label" x="1190" y="730">Logging & Tracing</text>
+          <text class="design-text" x="1190" y="750">Structured Logs</text>
+          <text class="design-text" x="1190" y="768">JSON Format</text>
+          <text class="design-text" x="1190" y="786">Distributed</text>
+          <text class="design-text" x="1190" y="804">Tracing</text>
+          <text class="design-text" x="1190" y="822">Request IDs</text>
+
+          <!-- Connection arrows showing data flow -->
+          <path class="design-arrow" d="M 140 110 L 140 170"/>
+          <path class="design-arrow" d="M 350 110 L 350 170"/>
+          <path class="design-arrow" d="M 560 110 L 560 170"/>
+          <path class="design-arrow" d="M 840 110 L 840 170"/>
+
+          <path class="design-arrow" d="M 150 280 L 100 340"/>
+          <path class="design-arrow" d="M 350 280 L 300 340"/>
+          <path class="design-arrow" d="M 610 280 L 650 340"/>
+          <path class="design-arrow" d="M 1070 280 L 1100 340"/>
+
+          <path class="design-arrow" d="M 100 450 L 130 510"/>
+          <path class="design-arrow" d="M 300 450 L 310 510"/>
+          <path class="design-arrow" d="M 490 450 L 490 510"/>
+          <path class="design-arrow" d="M 670 450 L 670 510"/>
+
+          <path class="design-arrow" d="M 120 650 L 120 710"/>
+          <path class="design-arrow" d="M 280 650 L 280 710"/>
+          <path class="design-arrow" d="M 440 650 L 440 710"/>
+          <path class="design-arrow" d="M 760 650 L 760 710"/>
+        </svg>
+      </div>
+
+      <h3>Component Interactions</h3>
+      <div class="grid-2">
+        <div class="subsection">
+          <strong>Request Flow</strong>
+          <ul>
+            <li>Client submits loan application via REST API</li>
+            <li>FastAPI validates request and initiates pipeline</li>
+            <li>Harness creates session state and begins orchestration</li>
+            <li>SSE stream sends real-time events to client</li>
+            <li>Final decision is persisted to all memory stores</li>
+          </ul>
+        </div>
+        <div class="subsection">
+          <strong>Agent Coordination</strong>
+          <ul>
+            <li>Harness discovers agents via Agent Cards</li>
+            <li>Each agent receives task via JSON-RPC</li>
+            <li>Agent invokes tools and calls LLM</li>
+            <li>Results cached in working memory (Redis)</li>
+            <li>Logged to episodic memory (SQLite)</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Data Flow Architecture</h3>
+      <div class="concept-box">
+        <strong>Input Data:</strong> Customer profile, loan details, KYC documents<br>
+        <strong>Processing:</strong> Tools extract data → Agents analyze → LLM generates insights<br>
+        <strong>Intermediate Results:</strong> Cached in Redis for downstream agents<br>
+        <strong>Output Data:</strong> Final decision, rationale, risk assessment<br>
+        <strong>Persistence:</strong> All decisions logged to SQLite audit trail
+      </div>
+
+      <h3>Scalability Considerations</h3>
+      <div class="grid-2">
+        <div class="card">
+          <h4>Horizontal Scaling</h4>
+          <p><strong>Stateless API:</strong> Multiple FastAPI instances behind load balancer</p>
+          <p><strong>Shared Memory:</strong> Redis cluster for distributed cache</p>
+          <p><strong>Database Replication:</strong> SQLite replicated to PostgreSQL for HA</p>
+        </div>
+        <div class="card">
+          <h4>Vertical Scaling</h4>
+          <p><strong>Parallel Sessions:</strong> Execute independent agents concurrently</p>
+          <p><strong>Tool Optimization:</strong> Cache tool results to reduce redundant calls</p>
+          <p><strong>LLM Batching:</strong> Group multiple LLM requests for efficiency</p>
+        </div>
+      </div>
+
+      <h3>Failure Handling & Resilience</h3>
+      <div class="grid-2">
+        <div class="subsection">
+          <strong>LLM Fallback</strong>
+          <ul>
+            <li>Primary: OpenAI (gpt-4o-mini)</li>
+            <li>Secondary: Anthropic (Claude Haiku)</li>
+            <li>Tertiary: Ollama (local model)</li>
+            <li>Fallback: Mock responses (deterministic)</li>
+          </ul>
+        </div>
+        <div class="subsection">
+          <strong>Memory Fallback</strong>
+          <ul>
+            <li>Redis unavailable → Use in-process store</li>
+            <li>ChromaDB unavailable → Skip semantic queries</li>
+            <li>SQLite unavailable → Log to memory</li>
+            <li>All data eventually persisted</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Technology Stack</h3>
+      <div class="grid-3">
+        <div class="card">
+          <h4>API & Orchestration</h4>
+          <p><strong>FastAPI:</strong> Modern async Python framework</p>
+          <p><strong>Pydantic:</strong> Data validation & serialization</p>
+          <p><strong>asyncio:</strong> Async/await for concurrent operations</p>
+        </div>
+        <div class="card">
+          <h4>Memory & Storage</h4>
+          <p><strong>Redis:</strong> High-speed cache (working memory)</p>
+          <p><strong>SQLite:</strong> Persistent audit trail (episodic)</p>
+          <p><strong>ChromaDB:</strong> Vector DB (semantic memory)</p>
+          <p><strong>Python List:</strong> In-context memory</p>
+        </div>
+        <div class="card">
+          <h4>Monitoring & Observability</h4>
+          <p><strong>Prometheus:</strong> Metrics collection</p>
+          <p><strong>Grafana:</strong> Visualization & dashboards</p>
+          <p><strong>Slack:</strong> Notifications & alerts</p>
+          <p><strong>Docker:</strong> Containerization</p>
+        </div>
+      </div>
+
+      <h3>Security & Compliance</h3>
+      <div class="subsection">
+        <strong>Data Protection</strong>
+        <ul>
+          <li>Customer data encrypted at rest (SQLite, Redis)</li>
+          <li>API authentication via API keys</li>
+          <li>CORS configured for trusted origins</li>
+          <li>Rate limiting per customer</li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <strong>Audit & Compliance</strong>
+        <ul>
+          <li>All decisions logged to immutable audit trail (SQLite)</li>
+          <li>Compliance rules enforced by agents</li>
+          <li>Fair Lending checks integrated</li>
+          <li>FCRA compliance for credit decisions</li>
+        </ul>
+      </div>
+
+      <h3>Deployment Architecture</h3>
+      <div class="concept-box">
+        <strong>Development:</strong> Docker Compose (FastAPI, Redis, SQLite, Ollama)<br>
+        <strong>Staging:</strong> Kubernetes cluster with 3 replicas<br>
+        <strong>Production:</strong> Multi-region Kubernetes with auto-scaling<br>
+        <strong>Monitoring:</strong> Prometheus + Grafana stack<br>
+        <strong>Notifications:</strong> Slack integration for alerts
+      </div>
+
+      <h3>Performance Targets</h3>
+      <div class="grid-3">
+        <div class="card">
+          <h4>Latency</h4>
+          <p><strong>P50:</strong> 1.2s</p>
+          <p><strong>P95:</strong> 1.8s</p>
+          <p><strong>P99:</strong> 2.5s</p>
+        </div>
+        <div class="card">
+          <h4>Throughput</h4>
+          <p><strong>Sustained:</strong> 500 apps/min</p>
+          <p><strong>Peak:</strong> 1000 apps/min</p>
+          <p><strong>Daily:</strong> 1000+ applications</p>
+        </div>
+        <div class="card">
+          <h4>Availability</h4>
+          <p><strong>Target SLA:</strong> 99.95%</p>
+          <p><strong>RTO:</strong> &lt;5 minutes</p>
+          <p><strong>RPO:</strong> &lt;1 minute</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: SDK LAYER -->
+    <div class="section" id="sdk">
+      <h2>3. SDK Layer - Tool Registration & Dispatch</h2>
+
+      <h3>Concept: Declarative Tool Definition</h3>
+      <p>The SDK layer uses a decorator pattern (@tool) to register functions as callable tools. Each tool has metadata (name, description, parameters, return type) that enables LLMs to discover and invoke them.</p>
+
+      <div class="concept-box">
+        <strong>Key Pattern:</strong> Decorator-based registration eliminates boilerplate. Tools are self-documenting and automatically discoverable by agents.
+      </div>
+
+      <h3>Implemented Tools</h3>
+      <div class="grid-2">
+        <div class="subsection">
+          <strong>Customer Tools</strong>
+          <ul>
+            <li><span class="highlight">get_customer_profile</span> - Retrieves customer demographics, account history</li>
+            <li><span class="highlight">verify_kyc_documents</span> - Validates identity and address proofs</li>
+          </ul>
+        </div>
+        <div class="subsection">
+          <strong>Credit Tools</strong>
+          <ul>
+            <li><span class="highlight">check_credit_score</span> - Queries credit bureau data</li>
+            <li><span class="highlight">calculate_affordability</span> - Computes DTI ratio and monthly payments</li>
+          </ul>
+        </div>
+        <div class="subsection">
+          <strong>Fraud Tools</strong>
+          <ul>
+            <li><span class="highlight">scan_transaction_history</span> - Analyzes 30-day transaction patterns</li>
+          </ul>
+        </div>
+        <div class="subsection">
+          <strong>Compliance Tools</strong>
+          <ul>
+            <li><span class="highlight">query_banking_rules</span> - Semantic search over regulatory requirements</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Enhancement Opportunities</h3>
+      <ul>
+        <li><strong>Tool Versioning:</strong> Support multiple versions of tools with backward compatibility</li>
+        <li><strong>Async Tool Execution:</strong> Parallel tool invocation for independent operations</li>
+        <li><strong>Tool Caching:</strong> Memoize tool results for repeated calls within a session</li>
+        <li><strong>Tool Composition:</strong> Allow tools to call other tools (tool chains)</li>
+        <li><strong>Tool Permissions:</strong> Fine-grained access control based on agent identity</li>
+      </ul>
+    </div>
+
+    <!-- SECTION 3: HARNESS -->
+    <div class="section" id="harness">
+      <h2>4. Harness - Multi-Session Orchestration</h2>
+
+      <h3>Concept: Stateful Workflow Management</h3>
+      <p>The Harness manages the lifecycle of a loan application across 5 sequential sessions. It maintains progress state, tracks agent execution times, handles context compaction, and coordinates inter-session data flow.</p>
+
+      <h3>Session State Structure</h3>
+      <div class="code-block">
+{
+  "app_id": "LOAN-143022-001",
+  "session_num": 2,
+  "customer": { /* customer data */ },
+  "loan": { /* loan details */ },
+  "progress": {
+    "intake": "complete",
+    "risk": "pending",
+    "fraud": "pending",
+    "decision": "pending"
+  },
+  "results": { /* agent outputs */ },
+  "agent_timings": { /* per-agent latency */ },
+  "compactions": 0,
+  "pipeline_start": 1234567890.123
+}
+      </div>
+
+      <h3>Key Features</h3>
+      <div class="grid-2">
+        <div class="subsection">
+          <strong>Progress Tracking</strong>
+          <p>Each agent's status (pending/complete) is tracked, enabling resume capability if a session fails.</p>
+        </div>
+        <div class="subsection">
+          <strong>Context Compaction</strong>
+          <p>When in-context memory reaches capacity, old turns are summarized and replaced, maintaining conversation continuity.</p>
+        </div>
+        <div class="subsection">
+          <strong>Timing Instrumentation</strong>
+          <p>Per-agent latency is recorded for performance analysis and SLA monitoring.</p>
+        </div>
+        <div class="subsection">
+          <strong>Cross-Session Data Flow</strong>
+          <p>Results from earlier sessions are passed to downstream agents via working memory (Redis).</p>
+        </div>
+      </div>
+
+      <h3>Enhancement Opportunities</h3>
+      <ul>
+        <li><strong>Conditional Routing:</strong> Skip sessions based on risk assessment (e.g., skip fraud check for low-risk customers)</li>
+        <li><strong>Parallel Sessions:</strong> Execute independent agents in parallel instead of sequential</li>
+        <li><strong>Session Persistence:</strong> Save/restore session state to enable long-running workflows</li>
+        <li><strong>Rollback Capability:</strong> Revert to earlier session state if downstream validation fails</li>
+        <li><strong>Dynamic Session Count:</strong> Add/remove sessions based on application complexity</li>
+      </ul>
+    </div>
+
+    <!-- SECTION 4: A2A PROTOCOL -->
+    <div class="section" id="a2a">
+      <h2>5. A2A Protocol - Agent Communication</h2>
+
+      <h3>Concept: JSON-RPC 2.0 Agent-to-Agent Communication</h3>
+      <p>The A2A (Agent-to-Agent) protocol enables structured, discoverable communication between agents. Each agent exposes an "Agent Card" describing its capabilities, and agents communicate via JSON-RPC 2.0 method calls.</p>
+
+      <h3>Agent Card Structure</h3>
+      <div class="code-block">
+{
+  "name": "Intake Agent",
+  "description": "Collects and validates initial loan application",
+  "skills": ["loan_intake", "kyc_verification", "affordability_precheck"],
+  "url": "/.well-known/agents/intake",
+  "system_prompt": "You are a banking intake specialist..."
+}
+      </div>
+
+      <h3>Communication Flow</h3>
+      <div class="concept-box">
+        <strong>1. Discovery:</strong> Harness discovers agent via Agent Card<br>
+        <strong>2. Task Dispatch:</strong> Harness sends task via JSON-RPC "tasks/send" method<br>
+        <strong>3. Tool Invocation:</strong> Agent executes tools and LLM calls<br>
+        <strong>4. Response:</strong> Agent returns structured result<br>
+        <strong>5. Persistence:</strong> Result is logged to episodic memory and cached in working memory
+      </div>
+
+      <h3>Four Specialist Agents</h3>
+      <div class="grid-2">
+        <div class="card">
+          <h4>Intake Agent</h4>
+          <p><strong>Role:</strong> Initial validation and pre-screening</p>
+          <p><strong>Tools:</strong> get_customer_profile, verify_kyc, calculate_affordability</p>
+          <p><strong>Output:</strong> Application completeness and key concerns</p>
+        </div>
+        <div class="card">
+          <h4>Risk Agent</h4>
+          <p><strong>Role:</strong> Credit risk assessment</p>
+          <p><strong>Tools:</strong> check_credit_score, query_banking_rules</p>
+          <p><strong>Output:</strong> Risk level (LOW/MEDIUM/HIGH) with primary factor</p>
+        </div>
+        <div class="card">
+          <h4>Fraud Agent</h4>
+          <p><strong>Role:</strong> Fraud and AML screening</p>
+          <p><strong>Tools:</strong> scan_transaction_history</p>
+          <p><strong>Output:</strong> Fraud indicators and recommendation</p>
+        </div>
+        <div class="card">
+          <h4>Decision Agent</h4>
+          <p><strong>Role:</strong> Final credit decision</p>
+          <p><strong>Tools:</strong> All upstream assessments</p>
+          <p><strong>Output:</strong> APPROVED/CONDITIONAL/DECLINED with rationale</p>
+        </div>
+      </div>
+
+      <h3>Enhancement Opportunities</h3>
+      <ul>
+        <li><strong>Agent Collaboration:</strong> Enable agents to query each other's intermediate results</li>
+        <li><strong>Consensus Mechanism:</strong> Multiple agents vote on decisions, with tie-breaking logic</li>
+        <li><strong>Agent Specialization:</strong> Create sub-agents for specific domains (e.g., mortgage specialist, auto loan specialist)</li>
+        <li><strong>Agent Learning:</strong> Agents learn from past decisions to improve future assessments</li>
+        <li><strong>Agent Versioning:</strong> Support multiple versions of agents with A/B testing</li>
+      </ul>
+    </div>
+
+    <!-- SECTION 5: MEMORY SYSTEM -->
+    <div class="section" id="memory">
+      <h2>6. Memory System - 4-Tier Architecture</h2>
+
+      <h3>Concept: Layered Memory for Optimal Performance</h3>
+      <p>The memory system uses 4 distinct stores, each optimized for different access patterns: speed, persistence, semantics, and context.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h4>1. In-Context Memory (Python List)</h4>
+          <p><strong>Speed:</strong> &lt;1ms</p>
+          <p><strong>Capacity:</strong> 10 turns</p>
+          <p><strong>Retention:</strong> Session-scoped</p>
+          <p><strong>Use:</strong> Active LLM context window. Auto-compacts when full.</p>
+        </div>
+        <div class="card">
+          <h4>2. Episodic Memory (SQLite)</h4>
+          <p><strong>Speed:</strong> 10-50ms</p>
+          <p><strong>Capacity:</strong> Unlimited</p>
+          <p><strong>Retention:</strong> Persistent</p>
+          <p><strong>Use:</strong> Audit trail. Append-only event log for compliance.</p>
+        </div>
+        <div class="card">
+          <h4>3. Semantic Memory (ChromaDB)</h4>
+          <p><strong>Speed:</strong> 50-200ms</p>
+          <p><strong>Capacity:</strong> Unlimited</p>
+          <p><strong>Retention:</strong> Persistent</p>
+          <p><strong>Use:</strong> Knowledge base. Vector embeddings for similarity search.</p>
+        </div>
+        <div class="card">
+          <h4>4. Working Memory (Redis)</h4>
+          <p><strong>Speed:</strong> &lt;5ms</p>
+          <p><strong>Capacity:</strong> 128MB</p>
+          <p><strong>Retention:</strong> TTL-based</p>
+          <p><strong>Use:</strong> Inter-agent cache. High-speed lookups with expiration.</p>
+        </div>
+      </div>
+
+      <h3>Memory Operations by Session</h3>
+      <div class="concept-box">
+        <strong>Session 1:</strong> Write banking rules → Semantic; Seed context → In-Context<br>
+        <strong>Session 2:</strong> Read context → In-Context; Cache intake results → Working<br>
+        <strong>Session 3:</strong> Query rules → Semantic; Cache risk level → Working<br>
+        <strong>Session 4:</strong> Read risk level → Working; Log fraud check → Episodic<br>
+        <strong>Session 5:</strong> Read all stores; Write final decision → All 4 stores
+      </div>
+
+      <h3>Enhancement Opportunities</h3>
+      <ul>
+        <li><strong>Memory Tiering:</strong> Automatically promote frequently-accessed items from cold to hot storage</li>
+        <li><strong>Distributed Memory:</strong> Replicate memory stores across regions for high availability</li>
+        <li><strong>Memory Compression:</strong> Compress old episodic events using summarization</li>
+        <li><strong>Semantic Indexing:</strong> Build multiple semantic indices for different query patterns</li>
+        <li><strong>Memory Governance:</strong> Enforce data retention policies and GDPR compliance</li>
+      </ul>
+    </div>
+
+    <!-- SECTION 6: LLM BACKEND -->
+    <div class="section" id="llm">
+      <h2>7. LLM Backend - Abstraction & Fallback</h2>
+
+      <h3>Concept: Multi-Backend LLM Abstraction</h3>
+      <p>The system abstracts LLM interactions behind a unified interface that supports multiple backends with automatic fallback. This enables cost optimization, latency reduction, and resilience.</p>
+
+      <h3>Supported Backends</h3>
+      <div class="grid-3">
+        <div class="card">
+          <h4>OpenAI</h4>
+          <p><strong>Model:</strong> gpt-4o-mini</p>
+          <p><strong>Cost:</strong> Higher</p>
+          <p><strong>Quality:</strong> Highest</p>
+          <p><strong>Latency:</strong> 1-3s</p>
+        </div>
+        <div class="card">
+          <h4>Anthropic</h4>
+          <p><strong>Model:</strong> Claude Haiku</p>
+          <p><strong>Cost:</strong> Medium</p>
+          <p><strong>Quality:</strong> High</p>
+          <p><strong>Latency:</strong> 2-4s</p>
+        </div>
+        <div class="card">
+          <h4>Ollama (Local)</h4>
+          <p><strong>Model:</strong> Qwen 0.6B</p>
+          <p><strong>Cost:</strong> Zero</p>
+          <p><strong>Quality:</strong> Medium</p>
+          <p><strong>Latency:</strong> 1-2s</p>
+        </div>
+      </div>
+
+      <h3>Auto-Detection & Fallback Logic</h3>
+      <div class="code-block">
+if OPENAI_API_KEY exists:
+  use OpenAI (gpt-4o-mini)
+elif ANTHROPIC_API_KEY exists:
+  use Anthropic (Claude Haiku)
+elif Ollama is reachable:
+  use Ollama (local model)
+else:
+  use Mock backend (deterministic responses)
+      </div>
+
+      <h3>Enhancement Opportunities</h3>
+      <ul>
+        <li><strong>Cost Optimization:</strong> Route simple tasks to cheaper models, complex tasks to premium models</li>
+        <li><strong>Latency Optimization:</strong> Use fastest available backend based on SLA requirements</li>
+        <li><strong>Model Fine-tuning:</strong> Fine-tune models on domain-specific banking tasks</li>
+        <li><strong>Prompt Optimization:</strong> Use prompt engineering frameworks (e.g., DSPy) to improve quality</li>
+        <li><strong>Token Budgeting:</strong> Track token usage per agent and implement budget limits</li>
+      </ul>
+    </div>
+
+    <!-- SECTION 7: MONITORING -->
+    <div class="section" id="monitoring">
+      <h2>8. Monitoring & Observability</h2>
+
+      <h3>Concept: Comprehensive Metrics & Tracing</h3>
+      <p>The system emits 20+ Prometheus metrics covering pipeline performance, agent behavior, tool execution, LLM usage, and memory operations.</p>
+
+      <h3>Key Metrics</h3>
+      <div class="grid-2">
+        <div class="subsection">
+          <strong>Pipeline Metrics</strong>
+          <ul>
+            <li>banking_pipeline_runs_total - Total pipeline executions</li>
+            <li>banking_pipeline_duration_seconds - End-to-end latency</li>
+            <li>banking_decisions_total - Decisions by outcome</li>
+          </ul>
+        </div>
+        <div class="subsection">
+          <strong>Agent Metrics</strong>
+          <ul>
+            <li>banking_agent_duration_seconds - Per-agent latency</li>
+            <li>banking_agent_calls_total - Agent invocations</li>
+            <li>banking_agent_errors_total - Agent failures</li>
+          </ul>
+        </div>
+        <div class="subsection">
+          <strong>Tool Metrics</strong>
+          <ul>
+            <li>banking_tool_calls_total - Tool invocations</li>
+            <li>banking_tool_duration_seconds - Tool latency</li>
+            <li>banking_tool_errors_total - Tool failures</li>
+          </ul>
+        </div>
+        <div class="subsection">
+          <strong>Memory Metrics</strong>
+          <ul>
+            <li>banking_memory_items_total - Items per store</li>
+            <li>banking_memory_operations_total - Read/write ops</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Grafana Dashboards</h3>
+      <ul>
+        <li><strong>Overview:</strong> System health, throughput, latency, decision distribution</li>
+        <li><strong>Agents & Tools:</strong> Per-agent performance, tool execution times</li>
+        <li><strong>Harness & Memory:</strong> Session state, memory store utilization</li>
+        <li><strong>Pipeline Decisions:</strong> Approval rates, risk distribution</li>
+        <li><strong>Risk & Fraud:</strong> Risk levels, fraud detections</li>
+        <li><strong>LLM Infrastructure:</strong> Model usage, token consumption</li>
+        <li><strong>Transaction Tracing:</strong> End-to-end request flow</li>
+      </ul>
+
+      <h3>Enhancement Opportunities</h3>
+      <ul>
+        <li><strong>Distributed Tracing:</strong> Implement OpenTelemetry for cross-service tracing</li>
+        <li><strong>Anomaly Detection:</strong> ML-based detection of unusual patterns</li>
+        <li><strong>SLO Monitoring:</strong> Track SLOs for latency, availability, error rate</li>
+        <li><strong>Cost Attribution:</strong> Track costs per customer, per agent, per LLM backend</li>
+        <li><strong>Real-time Alerts:</strong> Slack/PagerDuty integration for critical events</li>
+      </ul>
+    </div>
+
+    <!-- SECTION 8: ENHANCEMENTS -->
+    <div class="section" id="enhancements">
+      <h2>9. Enhancement Opportunities</h2>
+
+      <h3>Short-term (1-3 months)</h3>
+      <div class="subsection">
+        <strong>1. Parallel Agent Execution</strong>
+        <p>Execute independent agents (Risk, Fraud) in parallel instead of sequential. Reduces pipeline latency by 30-40%.</p>
+      </div>
+
+      <div class="subsection">
+        <strong>2. Tool Result Caching</strong>
+        <p>Memoize tool results within a session. Skip redundant tool calls if inputs haven't changed.</p>
+      </div>
+
+      <div class="subsection">
+        <strong>3. Conditional Session Routing</strong>
+        <p>Skip fraud check for low-risk customers. Skip affordability check if DTI is clearly acceptable.</p>
+      </div>
+
+      <h3>Medium-term (3-6 months)</h3>
+      <div class="subsection">
+        <strong>4. Agent Learning & Feedback Loop</strong>
+        <p>Collect feedback on agent decisions (e.g., did approved loans default?). Use feedback to fine-tune prompts and models.</p>
+      </div>
+
+      <div class="subsection">
+        <strong>5. Multi-Agent Consensus</strong>
+        <p>Route high-stakes decisions to multiple agents. Require consensus before approval. Implement tie-breaking logic.</p>
+      </div>
+
+      <div class="subsection">
+        <strong>6. Session Persistence & Resume</strong>
+        <p>Save session state to persistent storage. Enable resume if a session fails. Support long-running workflows.</p>
+      </div>
+
+      <h3>Long-term (6-12 months)</h3>
+      <div class="subsection">
+        <strong>7. Autonomous Agent Orchestration</strong>
+        <p>Agents autonomously decide which downstream agents to invoke. Implement dynamic DAG (directed acyclic graph) execution.</p>
+      </div>
+
+      <div class="subsection">
+        <strong>8. Cross-Domain Knowledge Transfer</strong>
+        <p>Share semantic memory across loan types (mortgage, auto, personal). Build domain-agnostic knowledge base.</p>
+      </div>
+
+      <div class="subsection">
+        <strong>9. Explainability & Audit Trail</strong>
+        <p>Generate human-readable explanations for every decision. Implement SHAP/LIME for feature importance.</p>
+      </div>
+
+      <div class="subsection">
+        <strong>10. Compliance & Governance</strong>
+        <p>Enforce regulatory constraints (e.g., Fair Lending, FCRA). Implement audit logging for regulatory review.</p>
+      </div>
+
+      <h3>Research Directions</h3>
+      <ul>
+        <li><strong>Agentic Reasoning:</strong> Implement chain-of-thought and tree-of-thought reasoning for complex decisions</li>
+        <li><strong>Retrieval-Augmented Generation (RAG):</strong> Enhance semantic memory with external knowledge sources</li>
+        <li><strong>Multi-Modal Agents:</strong> Process documents (PDFs, images) in addition to structured data</li>
+        <li><strong>Federated Learning:</strong> Train models across multiple institutions without sharing data</li>
+        <li><strong>Causal Inference:</strong> Move beyond correlation to causal relationships in credit assessment</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      <p>Banking AI Platform | Technical Architecture Guide | Enterprise Architects & Software Engineers</p>
+      <p>Generated: May 24, 2026 | Version 1.0</p>
+    </div>
+  </div>
+
+  <script>
+    function setTheme(theme) {
+      if (theme === 'dark') {
+        document.documentElement.classList.remove('light-mode');
+        document.querySelector('[onclick="setTheme(\'dark\')"]').classList.add('active');
+        document.querySelector('[onclick="setTheme(\'light\')"]').classList.remove('active');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.add('light-mode');
+        document.querySelector('[onclick="setTheme(\'light\')"]').classList.add('active');
+        document.querySelector('[onclick="setTheme(\'dark\')"]').classList.remove('active');
+        localStorage.setItem('theme', 'light');
+      }
+    }
+
+    // Load saved theme preference
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+  </script>
+</body>
+</html>
+

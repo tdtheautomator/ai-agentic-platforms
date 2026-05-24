@@ -1,0 +1,7 @@
+FROM prom/alertmanager:latest
+
+# Copy the entrypoint script with executable permission
+COPY --chmod=755 alertmanager-entrypoint.sh /entrypoint.sh
+
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]

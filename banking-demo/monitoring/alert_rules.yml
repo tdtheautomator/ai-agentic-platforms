@@ -1,0 +1,217 @@
+groups:
+  - name: banking_demo_alerts
+    interval: 30s
+    rules:
+      # ── Application Availability ──────────────────────────────────────────
+      - alert: BankingDemoDown
+        expr: up{job="banking-demo"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: banking-demo
+        annotations:
+          summary: "Banking Demo service is down"
+          description: "Banking Demo has been unreachable for more than 1 minute"
+          dashboard: "http://grafana:3000/d/banking-demo"
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="banking-demo",status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="banking-demo"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          dashboard: "http://grafana:3000/d/banking-demo"
+
+      # ── Pipeline Performance ──────────────────────────────────────────────
+      - alert: SlowPipelineExecution
+        expr: |
+          histogram_quantile(0.95, rate(banking_agent_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "Slow pipeline execution detected"
+          description: "P95 agent latency is {{ $value | humanizeDuration }} (threshold: 30s)"
+          dashboard: "http://grafana:3000/d/banking-pipeline"
+
+      - alert: PipelineStalled
+        expr: |
+          increase(banking_pipeline_runs_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "No pipeline runs in last 10 minutes"
+          description: "Pipeline appears to be stalled or not processing applications"
+          dashboard: "http://grafana:3000/d/banking-pipeline"
+
+      # ── Decision Quality ──────────────────────────────────────────────────
+      - alert: HighDeclineRate
+        expr: |
+          (
+            increase(banking_applications_declined_total[1h])
+            /
+            (increase(banking_applications_total[1h]) + 0.001)
+          ) > 0.7
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "Unusually high decline rate"
+          description: "Decline rate is {{ $value | humanizePercentage }} (threshold: 70%)"
+          dashboard: "http://grafana:3000/d/banking-decisions"
+
+      - alert: NoApprovalsToday
+        expr: |
+          increase(banking_applications_approved_total[24h]) == 0
+        for: 1h
+        labels:
+          severity: info
+          service: banking-demo
+        annotations:
+          summary: "No approved applications in the last 24 hours"
+          description: "Zero approvals detected - may indicate system issue or low volume"
+          dashboard: "http://grafana:3000/d/banking-decisions"
+
+      # ── Risk & Fraud Detection ────────────────────────────────────────────
+      - alert: HighFraudDetectionRate
+        expr: |
+          rate(banking_fraud_detections_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "High fraud detection rate"
+          description: "Fraud detection rate is {{ $value | humanizePercentage }} per second"
+          dashboard: "http://grafana:3000/d/banking-fraud"
+
+      - alert: HighRiskApplications
+        expr: |
+          rate(banking_risk_alerts_total{risk_level="high"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "High volume of high-risk applications"
+          description: "High-risk alert rate is {{ $value | humanizePercentage }} per second"
+          dashboard: "http://grafana:3000/d/banking-risk"
+
+      # ── Memory & Storage ──────────────────────────────────────────────────
+      - alert: MemoryStoreGrowing
+        expr: |
+          rate(banking_memory_items_total[5m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "Memory store growing rapidly"
+          description: "Memory items increasing at {{ $value | humanize }} items/sec"
+          dashboard: "http://grafana:3000/d/banking-memory"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis has been unreachable for more than 2 minutes"
+          dashboard: "http://grafana:3000/d/banking-infrastructure"
+
+      # ── LLM Backend ───────────────────────────────────────────────────────
+      - alert: LLMHighErrorRate
+        expr: |
+          (
+            sum(rate(banking_llm_requests_total{status="error"}[5m]))
+            /
+            sum(rate(banking_llm_requests_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "High LLM API error rate"
+          description: "LLM error rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+          dashboard: "http://grafana:3000/d/banking-llm"
+
+      - alert: LLMHighLatency
+        expr: |
+          histogram_quantile(0.95, rate(banking_llm_latency_seconds_bucket[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "High LLM API latency"
+          description: "P95 LLM latency is {{ $value | humanizeDuration }} (threshold: 10s)"
+          dashboard: "http://grafana:3000/d/banking-llm"
+
+      # ── Agent Performance ─────────────────────────────────────────────────
+      - alert: AgentErrors
+        expr: |
+          increase(banking_agent_errors_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "Agent errors detected"
+          description: "Agent {{ $labels.agent }} has {{ $value }} errors in last 5 minutes"
+          dashboard: "http://grafana:3000/d/banking-agents"
+
+      - alert: AgentTimeout
+        expr: |
+          histogram_quantile(0.99, rate(banking_agent_duration_seconds_bucket[5m])) > 60
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-demo
+        annotations:
+          summary: "Agent timeout detected"
+          description: "Agent {{ $labels.agent }} P99 latency is {{ $value | humanizeDuration }}"
+          dashboard: "http://grafana:3000/d/banking-agents"
+
+      # ── Data Quality ──────────────────────────────────────────────────────
+      - alert: LowApplicationVolume
+        expr: |
+          rate(banking_applications_total[1h]) < 0.001
+        for: 30m
+        labels:
+          severity: info
+          service: banking-demo
+        annotations:
+          summary: "Low application volume"
+          description: "Application processing rate is {{ $value | humanize }} per second"
+          dashboard: "http://grafana:3000/d/banking-volume"
+
+      - alert: AnomalousDecisionDistribution
+        expr: |
+          (
+            increase(banking_applications_conditional_total[1h])
+            /
+            (increase(banking_applications_total[1h]) + 0.001)
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: info
+          service: banking-demo
+        annotations:
+          summary: "Unusually high conditional decision rate"
+          description: "Conditional rate is {{ $value | humanizePercentage }} (normal: 10-30%)"
+          dashboard: "http://grafana:3000/d/banking-decisions"
