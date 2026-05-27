@@ -1,0 +1,85 @@
+global:
+  resolve_timeout: 5m
+
+# Templates for alert notifications
+templates: []
+
+# Root route with all parameters, which are inherited by the child routes if they are not overwritten.
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 5s
+  group_interval: 5s
+  repeat_interval: 12h
+
+  routes:
+    # Transaction alerts - immediate notification for every transaction
+    - match:
+        severity: info
+        type: transaction
+      receiver: 'ecommerce-demo'
+      group_wait: 1s
+      group_interval: 1s
+      repeat_interval: 24h
+
+    # Order processing alerts - sent to ecommerce-demo channel
+    - match:
+        severity: warning
+        alertname: 'HighCancelledOrderRate|FraudDetectionHigh'
+      receiver: 'ecommerce-demo'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'ecommerce-demo'
+      group_wait: 1s
+      group_interval: 1m
+      repeat_interval: 1h
+
+    # Warning alerts - batched notification
+    - match:
+        severity: warning
+      receiver: 'ecommerce-demo'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+# Receivers define the notification channels
+receivers:
+  - name: 'default'
+    # Default receiver - no notifications configured
+
+  - name: 'ecommerce-demo'
+    # All alerts routed to #ecommerce-demo channel
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+        channel: '#ecommerce-demo'
+        title: '{{ .GroupLabels.alertname }}'
+        text: 'Severity: {{ .GroupLabels.severity }} | Status: {{ .Status }} | {{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+
+# Inhibition rules allow to mute a set of alerts given that another alert is firing.
+inhibit_rules:
+  # Inhibit warning alerts if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service']
+
+  # Inhibit info alerts if warning or critical alert is firing
+  - source_match:
+      severity: 'warning'
+    target_match:
+      severity: 'info'
+    equal: ['alertname', 'service']
+
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'info'
+    equal: ['alertname', 'service']

@@ -1,0 +1,11 @@
+FROM prom/alertmanager:latest
+
+# Copy alertmanager configuration
+COPY alertmanager.yml /etc/alertmanager/alertmanager.yml
+
+# Expose port
+EXPOSE 9093
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:9093/-/healthy || exit 1

@@ -1,0 +1,75 @@
+groups:
+  - name: ecommerce_recording_rules
+    interval: 15s
+    rules:
+      # Request Rate
+      - record: job:http_requests_total:rate5m
+        expr: sum by (job) (rate(http_requests_total[5m]))
+
+      - record: job:http_requests_total:rate1m
+        expr: sum by (job) (rate(http_requests_total[1m]))
+
+      # Error Rate
+      - record: job:http_errors_total:rate5m
+        expr: sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
+
+      - record: job:http_error_rate:ratio
+        expr: (sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))) / (sum by (job) (rate(http_requests_total[5m])))
+
+      # Pipeline Performance - Percentiles
+      - record: ecommerce:pipeline_duration:p50
+        expr: histogram_quantile(0.50, rate(ecommerce_agent_duration_seconds_bucket[5m]))
+
+      - record: ecommerce:pipeline_duration:p95
+        expr: histogram_quantile(0.95, rate(ecommerce_agent_duration_seconds_bucket[5m]))
+
+      - record: ecommerce:pipeline_duration:p99
+        expr: histogram_quantile(0.99, rate(ecommerce_agent_duration_seconds_bucket[5m]))
+
+      # Order Processing
+      - record: ecommerce:orders_confirmed:rate5m
+        expr: sum(rate(ecommerce_pipeline_runs_total{outcome="confirmed"}[5m]))
+
+      - record: ecommerce:orders_cancelled:rate5m
+        expr: sum(rate(ecommerce_pipeline_runs_total{outcome="cancelled"}[5m]))
+
+      - record: ecommerce:orders_held:rate5m
+        expr: sum(rate(ecommerce_pipeline_runs_total{outcome="held_for_review"}[5m]))
+
+      - record: ecommerce:order_confirmation_rate:ratio
+        expr: sum(rate(ecommerce_pipeline_runs_total{outcome="confirmed"}[5m])) / sum(rate(ecommerce_pipeline_runs_total[5m]))
+
+      # Agent Performance by Agent
+      - record: ecommerce:agent_duration:p95
+        expr: histogram_quantile(0.95, sum by (agent, le) (rate(ecommerce_agent_duration_seconds_bucket[5m])))
+
+      - record: ecommerce:agent_calls:rate5m
+        expr: sum by (agent) (rate(ecommerce_agent_calls_total[5m]))
+
+      # Tool Execution by Tool
+      - record: ecommerce:tool_duration:p95
+        expr: histogram_quantile(0.95, sum by (tool_name, le) (rate(ecommerce_tool_duration_seconds_bucket[5m])))
+
+      - record: ecommerce:tool_calls:rate5m
+        expr: sum by (tool_name) (rate(ecommerce_tool_calls_total[5m]))
+
+      # Memory Operations
+      - record: ecommerce:memory_operations:rate5m
+        expr: sum by (memory_type, operation) (rate(ecommerce_memory_operations_total[5m]))
+
+      - record: ecommerce:memory_items:total
+        expr: sum by (memory_type) (ecommerce_memory_items_total)
+
+      # LLM Performance by Backend
+      - record: ecommerce:llm_latency:p95
+        expr: histogram_quantile(0.95, sum by (backend, le) (rate(ecommerce_llm_latency_seconds_bucket[5m])))
+
+      - record: ecommerce:llm_requests:rate5m
+        expr: sum by (backend, status) (rate(ecommerce_llm_requests_total[5m]))
+
+      # System Health
+      - record: up:count
+        expr: count by (job) (up == 1)
+
+      - record: up:total
+        expr: count by (job) (up)

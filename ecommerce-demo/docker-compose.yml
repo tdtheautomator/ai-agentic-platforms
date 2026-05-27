@@ -1,0 +1,171 @@
+# ─────────────────────────────────────────────────────────────────
+#  E-Commerce Demo — Complete Stack with Observability
+#
+#  Services:
+#    ecommerce-demo :8007   the full order pipeline
+#    redis          :6379   working memory (TTL cache)
+#    prometheus     :9090   metrics collection & alerting
+#    alertmanager   :9093   alert routing & Slack integration
+#    grafana        :3000   dashboards & visualization
+#
+#  ChromaDB and SQLite are embedded — no extra containers needed.
+#  Ollama must be running on the Windows host at :11434.
+#
+#  Start:  docker compose up --build
+#  Open:   http://localhost:8007 (E-Commerce Demo)
+#          http://localhost:3000 (Grafana - admin/admin)
+#          http://localhost:9090 (Prometheus)
+#          http://localhost:9093 (Alertmanager)
+# ─────────────────────────────────────────────────────────────────
+
+x-extra-hosts: &extra-hosts
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+
+  ecommerce-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agent-ecommerce-demo
+    ports:
+      - "8007:8007"
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:0.6b}
+      ECOMMERCE_OLLAMA_MODEL: ${ECOMMERCE_OLLAMA_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      REDIS_URL: redis://redis:6379
+      DATA_DIR: /data
+    env_file:
+      - .env
+    volumes:
+      - ecommerce_chroma:/data/chroma
+      - ecommerce_sqlite:/data/sqlite
+    depends_on:
+      redis:
+        condition: service_healthy
+    <<: *extra-hosts
+    networks: [ecommerce-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request; urllib.request.urlopen('http://localhost:8007/api/status')"]
+      interval: 25s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: agent-redis-ecommerce
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ecommerce_redis:/data
+    networks: [ecommerce-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ─────────────────────────────────────────────────────────────────
+  # Observability Stack
+  # ─────────────────────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: agent-prometheus-ecommerce
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - ./monitoring/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
+      - ecommerce_prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks: [ecommerce-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - ecommerce-demo
+
+  alertmanager:
+    build:
+      context: ./monitoring
+      dockerfile: Dockerfile.alertmanager
+    container_name: agent-alertmanager-ecommerce
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - ecommerce_alertmanager:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    environment:
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    networks: [ecommerce-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: agent-grafana-ecommerce
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - ecommerce_grafana:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [ecommerce-net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - prometheus
+
+volumes:
+  ecommerce_chroma:
+    driver: local
+  ecommerce_sqlite:
+    driver: local
+  ecommerce_redis:
+    driver: local
+  ecommerce_prometheus:
+    driver: local
+  ecommerce_alertmanager:
+    driver: local
+  ecommerce_grafana:
+    driver: local
+
+networks:
+  ecommerce-net:
+    driver: bridge
